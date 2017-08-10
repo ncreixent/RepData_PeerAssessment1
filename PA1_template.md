@@ -1,0 +1,152 @@
+# Reproducible Research: Peer Assessment 1
+
+
+## Loading and preprocessing the data
+ 
+First we read the data.
+
+
+```r
+data <- read.csv("activity.csv")
+```
+
+
+## What is mean total number of steps taken per day?
+
+First we generate table indicating the date and the total number of steps per day.
+
+
+```r
+  table_steps <- as.data.frame(tapply(data$steps, data$date, sum))
+  colnames(table_steps)[1] <- "steps"
+```
+
+Now we generate an histogram of the total steps.
+
+
+```r
+  hist(table_steps$steps)
+```
+
+![](PA1_template_files/figure-html/compute-1.png)<!-- -->
+
+Then we calculate the median and average daily steps.
+
+
+```r
+  mean_step <- as.integer(mean(table_steps$steps, na.rm = TRUE))
+  median_step <- as.integer(median (table_steps$steps, na.rm = TRUE))
+```
+
+The mean total steps per day amounts to 10766 while the median daily steps is 10765.
+
+## What is the average daily activity pattern?
+
+First we get the average steps per time interval, and then we generate the plot.
+
+
+```r
+  interval_steps <- as.data.frame(tapply(data$steps, data$interval, mean, na.rm=TRUE))
+  colnames(interval_steps)[1] <- "steps"
+  plot(interval_steps, type="l", xlab = "Interval", ylab = "Steps", main = "Steps per time interval")
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+
+Now we get the interval with the maximum number of steps.
+
+
+```r
+max_steps_row <- data[order(-data$step),][1,]
+max_steps_interval <- max_steps_row[,3]
+```
+
+The interval with the maximum number of average steps is 615.
+
+## Imputing missing values
+
+First we count the number of missing values:
+
+
+```r
+missingvalues <- sum(is.na(data$steps))
+```
+
+The quantity of missing values is 2304.
+
+As a strategy for filling in missing values, we will replace the NA with the average number of steps in the applicable time interval as calculated before to generate the Steps per time interval plot.
+
+
+```r
+ data_adj <- data
+ for (i in (1:nrow(data_adj))) {
+   if (is.na(data_adj[i,1])) {
+      data_adj[i,1] <- interval_steps[as.character(data_adj[i,3]),1]
+   } 
+ }
+```
+
+Now we generate an histogram of the total steps using the adjusted dataset.
+
+
+```r
+  table_steps_adj <- as.data.frame(tapply(data_adj$steps, data_adj$date, sum))
+  colnames(table_steps_adj)[1] <- "steps"
+  hist(table_steps$steps)
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+
+Then we calculate the median and average daily steps.
+
+
+```r
+  mean_step_adj <- as.integer(mean(table_steps_adj$steps, na.rm = TRUE))
+  median_step_adj <- as.integer(median (table_steps_adj$steps, na.rm = TRUE))
+```
+
+
+The mean total steps per day amounts to 10766 while the median daily steps is 10766.
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+First tag whether the day is a week or weekend day.
+
+
+```r
+  days <- weekdays(as.Date(data_adj$date))
+  for (j in (1:length(days))) {
+    if (days[j] == "Saturday"|days[j] =="Sunday"){
+      days[j] <- "Weekend"
+    } else {
+      days[j] <- "Weekday"
+    }
+  }
+ data_adj <- cbind(data_adj,days)
+```
+
+Now we create two subsets for weekdays and weekends data based on the adjusted data set. 
+Next we summarize the data to obtain the average daily steps per time interval for each subset.
+
+
+```r
+ options(warn=-1)
+ library(reshape2)
+ sum <- as.data.frame(with(data_adj, tapply(steps, list("Interval"=interval,days), mean)))
+ sum$interval <- as.numeric(rownames(sum))
+ sum <- melt(sum, id.vars="interval")
+ colnames(sum)[3] <- "Steps"
+ colnames(sum)[2] <- "Day_Type"
+ library(lattice)
+  xyplot(Steps ~ interval | Day_Type,
+       data = sum,
+       type = "l",
+       layout = c(1,2))
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+
+As can be seen in the previous plot, the patterns differ from weekday to weekends. Most noticeably:
+
+- Activity starts later in the day during weekends.
+- During the afternoon and late night activity seems to be greater in weekends than weekdays.
