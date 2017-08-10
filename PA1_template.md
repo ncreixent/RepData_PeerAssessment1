@@ -66,7 +66,7 @@ The interval with the maximum number of average steps is 615.
 ## Imputing missing values
 
 First we count the number of missing values:
-
+ 
 
 ```r
 missingvalues <- sum(is.na(data$steps))
